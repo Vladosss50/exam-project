@@ -1,3 +1,4 @@
+# Юнит-тесты для приложения
 import pandas as pd
 import numpy as np
 
