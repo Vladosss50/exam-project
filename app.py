@@ -5,6 +5,7 @@ from datetime import datetime
 import database as db
 import io
 import sqlite3
+import time
 
 # ==================== НАСТРОЙКА СТРАНИЦЫ ====================
 st.set_page_config(
@@ -28,7 +29,6 @@ st.markdown("""
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
-        /* ========== КНОПКИ В ОДНУ СТРОКУ С ОТСТУПАМИ ========== */
         .btn-container {
             display: flex;
             gap: 15px;
@@ -147,10 +147,71 @@ st.markdown("""
             text-align: center;
             background-color: #f8f9fa;
             margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        .upload-container:hover {
+            border-color: #764ba2;
+            background-color: #f0edff;
         }
         .upload-container p {
             color: #667eea !important;
             font-size: 18px;
+            font-weight: 500;
+        }
+        .upload-container .sub-text {
+            color: #888 !important;
+            font-size: 12px;
+        }
+        
+        /* АНИМАЦИЯ ЗАГРУЗКИ */
+        .loader-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .loader-text {
+            color: #667eea !important;
+            font-size: 16px;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+        .loader-subtext {
+            color: #888 !important;
+            font-size: 13px;
+        }
+        
+        /* ПРОГРЕСС-БАР */
+        .progress-container {
+            width: 100%;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 20px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
             font-weight: 500;
         }
     </style>
@@ -159,17 +220,51 @@ st.markdown("""
 # ==================== ИНИЦИАЛИЗАЦИЯ БД ====================
 db.init_db()
 
-# ==================== ЗАГРУЗКА ФАЙЛА ====================
-def load_uploaded_file(uploaded_file):
+# ==================== ЗАГРУЗКА ФАЙЛА С ПРОГРЕССОМ ====================
+def load_uploaded_file_with_progress(uploaded_file):
+    """Загружает файл с отображением прогресса"""
     try:
-        if uploaded_file.name.endswith('.csv'):
+        # Начинаем замер времени
+        start_time = time.time()
+        
+        # Определяем тип файла
+        file_type = uploaded_file.name.split('.')[-1].lower()
+        
+        # Чтение файла с анимацией прогресса
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        status_text.markdown("""
+            <div class="loader-container">
+                <div class="loader"></div>
+                <p class="loader-text">⏳ Чтение файла...</p>
+                <p class="loader-subtext">Пожалуйста, подождите</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        progress_bar.progress(20)
+        time.sleep(0.5)
+        
+        # Чтение файла
+        if file_type == 'csv':
             df = pd.read_csv(uploaded_file)
-        elif uploaded_file.name.endswith(('.xlsx', '.xls')):
+        elif file_type in ['xlsx', 'xls']:
             df = pd.read_excel(uploaded_file)
         else:
             st.error("❌ Поддерживаются только CSV и Excel файлы!")
             return None
         
+        progress_bar.progress(40)
+        status_text.markdown("""
+            <div class="loader-container">
+                <div class="loader"></div>
+                <p class="loader-text">🔍 Проверка данных...</p>
+                <p class="loader-subtext">Проверяем структуру файла</p>
+            </div>
+        """, unsafe_allow_html=True)
+        time.sleep(0.5)
+        
+        # Проверка колонок
         required_columns = ['date', 'category', 'product', 'quantity', 'price', 'city', 'manager']
         missing_cols = [col for col in required_columns if col not in df.columns]
         
@@ -178,23 +273,66 @@ def load_uploaded_file(uploaded_file):
             st.info("💡 Требуемые колонки: date, category, product, quantity, price, city, manager")
             return None
         
+        progress_bar.progress(60)
+        status_text.markdown("""
+            <div class="loader-container">
+                <div class="loader"></div>
+                <p class="loader-text">📊 Обработка данных...</p>
+                <p class="loader-subtext">Рассчитываем выручку</p>
+            </div>
+        """, unsafe_allow_html=True)
+        time.sleep(0.5)
+        
+        # Добавляем выручку
         df['revenue'] = df['quantity'] * df['price']
         
+        progress_bar.progress(80)
+        status_text.markdown("""
+            <div class="loader-container">
+                <div class="loader"></div>
+                <p class="loader-text">💾 Сохранение в базу данных...</p>
+                <p class="loader-subtext">Записываем {:,} записей</p>
+            </div>
+        """.format(len(df)), unsafe_allow_html=True)
+        time.sleep(0.5)
+        
+        # Сохранение в БД
         conn = sqlite3.connect(db.DB_NAME)
         cursor = conn.cursor()
         
-        for _, row in df.iterrows():
-            cursor.execute('''
-                INSERT INTO sales (date, category, product, quantity, price, city, manager, revenue, user_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (row['date'], row['category'], row['product'], row['quantity'], 
-                  row['price'], row['city'], row['manager'], row['revenue'], st.session_state.user_id))
+        total_rows = len(df)
+        batch_size = 500
+        
+        for i in range(0, total_rows, batch_size):
+            batch = df.iloc[i:i+batch_size]
+            for _, row in batch.iterrows():
+                cursor.execute('''
+                    INSERT INTO sales (date, category, product, quantity, price, city, manager, revenue, user_id)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (row['date'], row['category'], row['product'], row['quantity'], 
+                      row['price'], row['city'], row['manager'], row['revenue'], st.session_state.user_id))
+            
+            # Обновляем прогресс
+            current_progress = 80 + (i + len(batch)) / total_rows * 20
+            progress_bar.progress(min(int(current_progress), 100))
         
         conn.commit()
         conn.close()
         
-        st.success(f"✅ Успешно загружено {len(df)} записей!")
+        progress_bar.progress(100)
+        status_text.markdown("""
+            <div class="loader-container">
+                <p style="color: #28a745 !important; font-size: 24px;">✅</p>
+                <p class="loader-text" style="color: #28a745 !important;">Загрузка завершена!</p>
+                <p class="loader-subtext">Добавлено {:,} записей за {:.1f} секунд</p>
+            </div>
+        """.format(len(df), time.time() - start_time), unsafe_allow_html=True)
+        
+        time.sleep(0.5)
+        
+        st.success(f"✅ Успешно загружено {len(df)} записей за {time.time() - start_time:.1f} сек!")
         return df
+        
     except Exception as e:
         st.error(f"❌ Ошибка при загрузке файла: {str(e)}")
         return None
@@ -278,7 +416,7 @@ with st.sidebar:
     st.markdown("""
         <div class="upload-container">
             <p>📂 Перетащите файл сюда</p>
-            <p style="font-size: 12px; color: #888 !important;">Поддерживаются CSV и Excel (.xlsx, .xls)</p>
+            <p class="sub-text">Поддерживаются CSV и Excel (.xlsx, .xls)</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -290,8 +428,8 @@ with st.sidebar:
     )
     
     if uploaded_file is not None:
-        with st.spinner("Загрузка данных..."):
-            load_uploaded_file(uploaded_file)
+        with st.spinner("⏳ Загрузка данных..."):
+            load_uploaded_file_with_progress(uploaded_file)
         st.rerun()
     
     st.divider()
@@ -357,7 +495,7 @@ with col5:
 
 st.divider()
 
-# ==================== КНОПКИ УПРАВЛЕНИЯ (ЧЕРЕЗ HTML) ====================
+# ==================== КНОПКИ УПРАВЛЕНИЯ ====================
 st.markdown('<div class="btn-container">', unsafe_allow_html=True)
 
 col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
