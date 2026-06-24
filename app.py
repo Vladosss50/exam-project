@@ -4,6 +4,7 @@ import plotly.express as px
 from datetime import datetime
 import database as db
 import io
+import os
 
 # ==================== НАСТРОЙКА СТРАНИЦЫ ====================
 st.set_page_config(
@@ -27,7 +28,6 @@ st.markdown("""
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
-        /* КНОПКИ - РОВНЫЕ И ОДИНАКОВЫЕ */
         .stButton > button {
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -112,8 +112,10 @@ st.markdown("""
         .stMarkdown, .stText, .stTitle, .stSubheader, .stHeader {
             color: #333333 !important;
         }
-        h1, h2, h3, h4, h5, h6, label, p, span, div {
-            color: #333333 !important;
+        
+        /* КРОМЕ ЗАГОЛОВКА - ТАМ БЕЛЫЙ */
+        .main-header h1, .main-header p, .main-header span {
+            color: white !important;
         }
         
         .sidebar .stButton > button {
@@ -133,11 +135,70 @@ st.markdown("""
         .stSidebar h1, .stSidebar h2, .stSidebar h3 {
             color: #333333 !important;
         }
+
+        /* КНОПКА ЗАГРУЗКИ ФАЙЛА */
+        .upload-container {
+            border: 2px dashed #667eea;
+            border-radius: 15px;
+            padding: 30px;
+            text-align: center;
+            background-color: #f8f9fa;
+            margin-bottom: 20px;
+        }
+        .upload-container p {
+            color: #667eea !important;
+            font-size: 18px;
+            font-weight: 500;
+        }
     </style>
 """, unsafe_allow_html=True)
 
 # ==================== ИНИЦИАЛИЗАЦИЯ БД ====================
 db.init_db()
+
+# ==================== ЗАГРУЗКА ФАЙЛА ====================
+def load_uploaded_file(uploaded_file):
+    """Загружает файл и возвращает DataFrame"""
+    try:
+        if uploaded_file.name.endswith('.csv'):
+            df = pd.read_csv(uploaded_file)
+        elif uploaded_file.name.endswith(('.xlsx', '.xls')):
+            df = pd.read_excel(uploaded_file)
+        else:
+            st.error("❌ Поддерживаются только CSV и Excel файлы!")
+            return None
+        
+        # Проверяем наличие нужных колонок
+        required_columns = ['date', 'category', 'product', 'quantity', 'price', 'city', 'manager']
+        missing_cols = [col for col in required_columns if col not in df.columns]
+        
+        if missing_cols:
+            st.error(f"❌ В файле отсутствуют колонки: {', '.join(missing_cols)}")
+            st.info("💡 Требуемые колонки: date, category, product, quantity, price, city, manager")
+            return None
+        
+        # Добавляем выручку
+        df['revenue'] = df['quantity'] * df['price']
+        
+        # Сохраняем в БД
+        conn = sqlite3.connect(db.DB_NAME)
+        cursor = conn.cursor()
+        
+        for _, row in df.iterrows():
+            cursor.execute('''
+                INSERT INTO sales (date, category, product, quantity, price, city, manager, revenue, user_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (row['date'], row['category'], row['product'], row['quantity'], 
+                  row['price'], row['city'], row['manager'], row['revenue'], st.session_state.user_id))
+        
+        conn.commit()
+        conn.close()
+        
+        st.success(f"✅ Успешно загружено {len(df)} записей!")
+        return df
+    except Exception as e:
+        st.error(f"❌ Ошибка при загрузке файла: {str(e)}")
+        return None
 
 # ==================== АВТОРИЗАЦИЯ ====================
 def auth_page():
@@ -212,6 +273,31 @@ with st.sidebar:
     
     st.divider()
     
+    # ==================== ЗАГРУЗКА ФАЙЛА ====================
+    st.header("📤 Загрузить данные")
+    
+    st.markdown("""
+        <div class="upload-container">
+            <p>📂 Перетащите файл сюда</p>
+            <p style="font-size: 12px; color: #888 !important;">Поддерживаются CSV и Excel (.xlsx, .xls)</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    uploaded_file = st.file_uploader(
+        "Выберите файл",
+        type=['csv', 'xlsx', 'xls'],
+        label_visibility="collapsed",
+        help="Загрузите файл с данными. Требуемые колонки: date, category, product, quantity, price, city, manager"
+    )
+    
+    if uploaded_file is not None:
+        with st.spinner("Загрузка данных..."):
+            load_uploaded_file(uploaded_file)
+        st.rerun()
+    
+    st.divider()
+    
+    # ==================== ФИЛЬТРЫ ====================
     df = db.get_data()
     
     st.header("🔍 Фильтры")
