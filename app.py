@@ -5,11 +5,13 @@ import plotly.express as px
 from datetime import datetime, timedelta
 import random
 
+# Настройка страницы
 st.set_page_config(page_title="Анализ продаж", layout="wide")
 
+# Заголовок
 st.title("📊 Анализ продаж интернет-магазина")
 
-# Генерация данных
+# ==================== ГЕНЕРАЦИЯ ДАННЫХ ====================
 @st.cache_data
 def generate_data():
     categories = ['Электроника', 'Одежда', 'Книги', 'Дом', 'Спорт']
@@ -44,7 +46,7 @@ def generate_data():
 
 df = generate_data()
 
-# Фильтры в боковой панели
+# ==================== БОКОВАЯ ПАНЕЛЬ С ФИЛЬТРАМИ ====================
 st.sidebar.header("🔍 Фильтры")
 
 categories = st.sidebar.multiselect(
@@ -70,8 +72,9 @@ filtered_df = df[
 if search_term:
     filtered_df = filtered_df[filtered_df['Товар'].str.contains(search_term, case=False)]
 
-# Метрики
+# ==================== МЕТРИКИ ====================
 col1, col2, col3, col4 = st.columns(4)
+
 with col1:
     st.metric("📦 Продажи", f"{len(filtered_df)} шт.")
 with col2:
@@ -88,7 +91,7 @@ with col4:
 
 st.divider()
 
-# Графики
+# ==================== ГРАФИКИ ====================
 if len(filtered_df) > 0:
     col1, col2 = st.columns(2)
     
@@ -97,45 +100,41 @@ if len(filtered_df) > 0:
             filtered_df.groupby('Категория')['Выручка'].sum().reset_index(),
             x='Категория', y='Выручка',
             title='💰 Выручка по категориям',
-            color='Категория',
-            color_discrete_sequence=px.colors.qualitative.Set2
+            color='Категория'
         )
-        fig1.update_layout(showlegend=False)
         st.plotly_chart(fig1, use_container_width=True)
     
     with col2:
         fig2 = px.pie(
             filtered_df.groupby('Категория')['Выручка'].sum().reset_index(),
             names='Категория', values='Выручка',
-            title='📊 Доля категорий',
-            color_discrete_sequence=px.colors.qualitative.Set2
+            title='📊 Доля категорий'
         )
         st.plotly_chart(fig2, use_container_width=True)
     
+    # Динамика продаж
     daily_sales = filtered_df.groupby('Дата')['Выручка'].sum().reset_index()
     fig3 = px.line(
         daily_sales, x='Дата', y='Выручка',
         title='📈 Динамика продаж',
-        markers=True,
-        color_discrete_sequence=['#667eea']
+        markers=True
     )
     st.plotly_chart(fig3, use_container_width=True)
     
+    # Рейтинг менеджеров
     manager_sales = filtered_df.groupby('Менеджер')['Выручка'].sum().reset_index().sort_values('Выручка', ascending=False)
     fig4 = px.bar(
         manager_sales, x='Менеджер', y='Выручка',
         title='🏅 Рейтинг менеджеров',
-        color='Менеджер',
-        color_discrete_sequence=px.colors.qualitative.Set3
+        color='Менеджер'
     )
-    fig4.update_layout(showlegend=False)
     st.plotly_chart(fig4, use_container_width=True)
     
-    # Таблица
+    # ==================== ТАБЛИЦА ====================
     st.subheader("📋 Детальные данные")
     st.dataframe(filtered_df, use_container_width=True)
     
-    # Скачивание
+    # ==================== СКАЧИВАНИЕ ====================
     csv = filtered_df.to_csv(index=False)
     st.download_button(
         label="📥 Скачать CSV",
@@ -147,6 +146,7 @@ if len(filtered_df) > 0:
 else:
     st.warning("⚠️ Нет данных для выбранных фильтров")
 
+# ==================== ПОДВАЛ ====================
 st.divider()
 st.markdown(
     f"""
