@@ -47,17 +47,21 @@ def generate_data():
         })
     return pd.DataFrame(data)
 
-# Инициализация df
+# ==================== ИНИЦИАЛИЗАЦИЯ СОСТОЯНИЯ ====================
 if "df" not in st.session_state:
     st.session_state.df = generate_data()
 if "uploading" not in st.session_state:
     st.session_state.uploading = False
 if "upload_complete" not in st.session_state:
     st.session_state.upload_complete = False
+if "file_uploaded" not in st.session_state:
+    st.session_state.file_uploaded = False
+if "file_key" not in st.session_state:
+    st.session_state.file_key = 0
 
-# ==================== ЗАГРУЗКА ФАЙЛА С АНИМАЦИЕЙ ====================
+# ==================== ЗАГРУЗКА ФАЙЛА ====================
 def load_uploaded_file_with_progress(uploaded_file):
-    """Загружает файл с отображением прогресса и анимацией"""
+    """Загружает файл с отображением прогресса"""
     try:
         st.session_state.uploading = True
         st.session_state.upload_complete = False
@@ -65,12 +69,10 @@ def load_uploaded_file_with_progress(uploaded_file):
         start_time = time.time()
         file_type = uploaded_file.name.split('.')[-1].lower()
         
-        # Создаем контейнеры для анимации
         progress_bar = st.progress(0)
         status_placeholder = st.empty()
-        time_placeholder = st.empty()
         
-        # Шаг 1: Чтение файла (20%)
+        # Шаг 1: Чтение файла
         status_placeholder.markdown("""
             <div style="text-align: center; padding: 15px;">
                 <div style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
@@ -85,7 +87,7 @@ def load_uploaded_file_with_progress(uploaded_file):
             </style>
         """, unsafe_allow_html=True)
         progress_bar.progress(20)
-        time.sleep(0.5)
+        time.sleep(0.3)
         
         # Читаем файл
         if file_type == 'csv':
@@ -97,7 +99,7 @@ def load_uploaded_file_with_progress(uploaded_file):
             st.session_state.uploading = False
             return False
         
-        # Шаг 2: Проверка данных (40%)
+        # Шаг 2: Проверка данных
         status_placeholder.markdown("""
             <div style="text-align: center; padding: 15px;">
                 <div style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
@@ -106,7 +108,7 @@ def load_uploaded_file_with_progress(uploaded_file):
             </div>
         """, unsafe_allow_html=True)
         progress_bar.progress(40)
-        time.sleep(0.5)
+        time.sleep(0.3)
         
         # Проверяем колонки
         required_cols_ru = ['Дата', 'Категория', 'Товар', 'Количество', 'Цена', 'Город', 'Менеджер']
@@ -126,7 +128,7 @@ def load_uploaded_file_with_progress(uploaded_file):
             st.session_state.uploading = False
             return False
         
-        # Шаг 3: Обработка данных (60%)
+        # Шаг 3: Обработка
         status_placeholder.markdown("""
             <div style="text-align: center; padding: 15px;">
                 <div style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
@@ -135,9 +137,9 @@ def load_uploaded_file_with_progress(uploaded_file):
             </div>
         """, unsafe_allow_html=True)
         progress_bar.progress(60)
-        time.sleep(0.5)
+        time.sleep(0.3)
         
-        # Шаг 4: Добавление к существующим данным (80%)
+        # Шаг 4: Сохранение
         status_placeholder.markdown(f"""
             <div style="text-align: center; padding: 15px;">
                 <div style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
@@ -146,12 +148,12 @@ def load_uploaded_file_with_progress(uploaded_file):
             </div>
         """, unsafe_allow_html=True)
         progress_bar.progress(80)
-        time.sleep(0.5)
+        time.sleep(0.3)
         
         # Добавляем к существующим данным
         st.session_state.df = pd.concat([st.session_state.df, new_df], ignore_index=True)
         
-        # Шаг 5: Готово (100%)
+        # Готово
         progress_bar.progress(100)
         elapsed_time = time.time() - start_time
         status_placeholder.markdown(f"""
@@ -163,10 +165,12 @@ def load_uploaded_file_with_progress(uploaded_file):
             </div>
         """, unsafe_allow_html=True)
         
-        time.sleep(0.8)
+        time.sleep(0.5)
         
         st.session_state.uploading = False
         st.session_state.upload_complete = True
+        st.session_state.file_uploaded = True
+        st.session_state.file_key += 1
         
         return True
         
@@ -178,10 +182,7 @@ def load_uploaded_file_with_progress(uploaded_file):
 # ==================== CSS ====================
 st.markdown("""
     <style>
-        .stApp {
-            background-color: #ffffff;
-        }
-        
+        .stApp { background-color: #ffffff; }
         .stMetric {
             background-color: #f8f9fa;
             padding: 15px;
@@ -189,7 +190,6 @@ st.markdown("""
             border: 1px solid #e9ecef;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        
         .btn-container {
             display: flex;
             gap: 15px;
@@ -197,9 +197,7 @@ st.markdown("""
             align-items: center;
             margin-bottom: 10px;
         }
-        .btn-container .stButton {
-            flex: 0 0 auto;
-        }
+        .btn-container .stButton { flex: 0 0 auto; }
         .btn-container .stButton > button {
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -220,24 +218,15 @@ st.markdown("""
             box-shadow: 0 4px 16px rgba(102, 126, 234, 0.5);
             background: linear-gradient(90deg, #7b93f5 0%, #8b5fbf 100%);
         }
-        
-        .stTabs [data-baseweb="tab-list"] {
-            background-color: #f8f9fa;
-            border-radius: 10px;
-        }
-        
+        .stTabs [data-baseweb="tab-list"] { background-color: #f8f9fa; border-radius: 10px; }
         .main-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 20px;
             border-radius: 15px;
             margin-bottom: 30px;
         }
-        .main-header h1 {
-            color: white !important;
-        }
-        .main-header p {
-            color: rgba(255,255,255,0.9) !important;
-        }
+        .main-header h1 { color: white !important; }
+        .main-header p { color: rgba(255,255,255,0.9) !important; }
         .header-time {
             background: rgba(255,255,255,0.2);
             padding: 8px 16px;
@@ -245,62 +234,19 @@ st.markdown("""
             color: white;
             white-space: nowrap;
         }
-        
-        .stExpander {
-            border-radius: 10px;
-            border: 1px solid #e9ecef;
-        }
-        
-        .stAlert {
-            border-radius: 10px;
-        }
-        
-        .stSidebar {
-            background-color: #f8f9fa;
-        }
-        .stSidebar .stTitle {
-            color: #333;
-        }
-        
-        .stDataFrame {
-            border-radius: 10px;
-            border: 1px solid #e9ecef;
-        }
-        
-        .footer {
-            text-align: center;
-            color: #888;
-            padding: 20px 0;
-        }
-        .footer p {
-            margin: 5px 0;
-        }
-        
-        .stSelectbox, .stTextInput, .stDateInput, .stNumberInput {
-            background-color: white;
-        }
-        
-        .stMarkdown, .stText, .stTitle, .stSubheader, .stHeader {
-            color: #333333 !important;
-        }
-        
-        .main-header h1, .main-header p, .main-header span {
-            color: white !important;
-        }
-        
-        .dataframe {
-            background-color: white !important;
-        }
-        
-        .stSidebar label {
-            color: #333333 !important;
-            font-weight: 500;
-        }
-        
-        .stSidebar h1, .stSidebar h2, .stSidebar h3 {
-            color: #333333 !important;
-        }
-        
+        .stExpander { border-radius: 10px; border: 1px solid #e9ecef; }
+        .stAlert { border-radius: 10px; }
+        .stSidebar { background-color: #f8f9fa; }
+        .stSidebar .stTitle { color: #333; }
+        .stDataFrame { border-radius: 10px; border: 1px solid #e9ecef; }
+        .footer { text-align: center; color: #888; padding: 20px 0; }
+        .footer p { margin: 5px 0; }
+        .stSelectbox, .stTextInput, .stDateInput, .stNumberInput { background-color: white; }
+        .stMarkdown, .stText, .stTitle, .stSubheader, .stHeader { color: #333333 !important; }
+        .main-header h1, .main-header p, .main-header span { color: white !important; }
+        .dataframe { background-color: white !important; }
+        .stSidebar label { color: #333333 !important; font-weight: 500; }
+        .stSidebar h1, .stSidebar h2, .stSidebar h3 { color: #333333 !important; }
         .upload-container {
             border: 2px dashed #667eea;
             border-radius: 15px;
@@ -314,15 +260,8 @@ st.markdown("""
             border-color: #764ba2;
             background-color: #f0edff;
         }
-        .upload-container p {
-            color: #667eea !important;
-            font-size: 16px;
-            font-weight: 500;
-        }
-        .upload-container .sub-text {
-            color: #888 !important;
-            font-size: 12px;
-        }
+        .upload-container p { color: #667eea !important; font-size: 16px; font-weight: 500; }
+        .upload-container .sub-text { color: #888 !important; font-size: 12px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -357,26 +296,33 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
     
-    # Показываем статус загрузки
-    if st.session_state.uploading:
-        st.info("⏳ Идет загрузка... Пожалуйста, подождите")
+    # Создаем уникальный ключ для file_uploader, чтобы сбрасывать после загрузки
+    uploader_key = f"file_uploader_{st.session_state.file_key}"
     
     uploaded_file = st.file_uploader(
         "Выберите файл",
         type=['csv', 'xlsx', 'xls'],
         label_visibility="collapsed",
-        help="Загрузите файл с данными. Колонки: Дата, Категория, Товар, Количество, Цена, Город, Менеджер"
+        help="Загрузите файл с данными. Колонки: Дата, Категория, Товар, Количество, Цена, Город, Менеджер",
+        key=uploader_key
     )
     
-    if uploaded_file is not None and not st.session_state.uploading:
-        load_uploaded_file_with_progress(uploaded_file)
-        st.rerun()
+    # Показываем статус
+    if st.session_state.uploading:
+        st.info("⏳ Идет загрузка... Пожалуйста, подождите")
     
     if st.session_state.upload_complete:
         st.success("✅ Данные загружены!")
         if st.button("🔄 Загрузить ещё файл"):
             st.session_state.upload_complete = False
+            st.session_state.file_uploaded = False
+            st.session_state.file_key += 1
             st.rerun()
+    
+    # Загружаем файл ТОЛЬКО если он загружен и НЕ обработан ранее
+    if uploaded_file is not None and not st.session_state.file_uploaded and not st.session_state.uploading:
+        load_uploaded_file_with_progress(uploaded_file)
+        st.rerun()
     
     st.divider()
     
@@ -470,7 +416,6 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 # ==================== ФОРМА ДОБАВЛЕНИЯ ====================
 def add_sale_to_df(new_date, new_category, new_product, new_quantity, new_price, new_city, new_manager):
-    """Добавляет новую запись в df"""
     new_row = pd.DataFrame({
         'Дата': [new_date],
         'Категория': [new_category],
