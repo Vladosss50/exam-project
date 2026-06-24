@@ -28,13 +28,22 @@ st.markdown("""
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
+        /* ========== КНОПКИ С ОТСТУПАМИ ========== */
+        div[data-testid="column"] {
+            padding-right: 15px !important;
+            padding-left: 0px !important;
+        }
+        div[data-testid="column"]:last-child {
+            padding-right: 0px !important;
+        }
+        
         .stButton > button {
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             border-radius: 8px;
             padding: 8px 16px;
-            transition: transform 0.2s;
+            transition: all 0.2s ease;
             white-space: nowrap;
             width: 100%;
             min-width: 120px;
@@ -44,10 +53,31 @@ st.markdown("""
             justify-content: center;
             font-size: 14px;
             font-weight: 500;
+            margin: 0 !important;
+            box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
         }
+        
         .stButton > button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            transform: scale(1.03);
+            box-shadow: 0 4px 16px rgba(102, 126, 234, 0.5);
+            background: linear-gradient(90deg, #7b93f5 0%, #8b5fbf 100%);
+        }
+        
+        .stButton > button:active {
+            transform: scale(0.97);
+            box-shadow: 0 1px 2px rgba(102, 126, 234, 0.2);
+        }
+        
+        .sidebar .stButton > button {
+            width: 100%;
+            min-width: unset;
+            padding: 8px 12px;
+            font-size: 13px;
+        }
+        
+        form .stButton > button {
+            min-width: 100px;
+            padding: 8px 24px;
         }
         
         .stTabs [data-baseweb="tab-list"] {
@@ -113,14 +143,8 @@ st.markdown("""
             color: #333333 !important;
         }
         
-        /* КРОМЕ ЗАГОЛОВКА - ТАМ БЕЛЫЙ */
         .main-header h1, .main-header p, .main-header span {
             color: white !important;
-        }
-        
-        .sidebar .stButton > button {
-            width: 100%;
-            min-width: unset;
         }
         
         .dataframe {
@@ -136,7 +160,6 @@ st.markdown("""
             color: #333333 !important;
         }
 
-        /* КНОПКА ЗАГРУЗКИ ФАЙЛА */
         .upload-container {
             border: 2px dashed #667eea;
             border-radius: 15px;
@@ -158,7 +181,6 @@ db.init_db()
 
 # ==================== ЗАГРУЗКА ФАЙЛА ====================
 def load_uploaded_file(uploaded_file):
-    """Загружает файл и возвращает DataFrame"""
     try:
         if uploaded_file.name.endswith('.csv'):
             df = pd.read_csv(uploaded_file)
@@ -168,7 +190,6 @@ def load_uploaded_file(uploaded_file):
             st.error("❌ Поддерживаются только CSV и Excel файлы!")
             return None
         
-        # Проверяем наличие нужных колонок
         required_columns = ['date', 'category', 'product', 'quantity', 'price', 'city', 'manager']
         missing_cols = [col for col in required_columns if col not in df.columns]
         
@@ -177,10 +198,8 @@ def load_uploaded_file(uploaded_file):
             st.info("💡 Требуемые колонки: date, category, product, quantity, price, city, manager")
             return None
         
-        # Добавляем выручку
         df['revenue'] = df['quantity'] * df['price']
         
-        # Сохраняем в БД
         conn = sqlite3.connect(db.DB_NAME)
         cursor = conn.cursor()
         
@@ -273,7 +292,7 @@ with st.sidebar:
     
     st.divider()
     
-    # ==================== ЗАГРУЗКА ФАЙЛА ====================
+    # Загрузка файла
     st.header("📤 Загрузить данные")
     
     st.markdown("""
@@ -297,7 +316,7 @@ with st.sidebar:
     
     st.divider()
     
-    # ==================== ФИЛЬТРЫ ====================
+    # Фильтры
     df = db.get_data()
     
     st.header("🔍 Фильтры")
@@ -358,7 +377,7 @@ with col5:
 
 st.divider()
 
-# ==================== КНОПКИ УПРАВЛЕНИЯ ====================
+# ==================== КНОПКИ УПРАВЛЕНИЯ (С ОТСТУПАМИ) ====================
 col_btn1, col_btn2, col_btn3, col_btn4 = st.columns([1, 1, 1, 7])
 
 with col_btn1:
