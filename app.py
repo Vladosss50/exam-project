@@ -4,7 +4,7 @@ import plotly.express as px
 from datetime import datetime
 import database as db
 import io
-import os
+import sqlite3
 
 # ==================== НАСТРОЙКА СТРАНИЦЫ ====================
 st.set_page_config(
@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ==================== CSS ДЛЯ СВЕТЛОЙ ТЕМЫ ====================
+# ==================== CSS ====================
 st.markdown("""
     <style>
         .stApp {
@@ -28,56 +28,36 @@ st.markdown("""
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
-        /* ========== КНОПКИ С ОТСТУПАМИ ========== */
-        div[data-testid="column"] {
-            padding-right: 15px !important;
-            padding-left: 0px !important;
+        /* ========== КНОПКИ В ОДНУ СТРОКУ С ОТСТУПАМИ ========== */
+        .btn-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: nowrap;
+            align-items: center;
+            margin-bottom: 10px;
         }
-        div[data-testid="column"]:last-child {
-            padding-right: 0px !important;
+        .btn-container .stButton {
+            flex: 0 0 auto;
         }
-        
-        .stButton > button {
+        .btn-container .stButton > button {
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             border-radius: 8px;
-            padding: 8px 16px;
+            padding: 8px 24px;
             transition: all 0.2s ease;
             white-space: nowrap;
-            width: 100%;
-            min-width: 120px;
+            min-width: 130px;
             height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             font-size: 14px;
             font-weight: 500;
-            margin: 0 !important;
             box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+            margin: 0 !important;
         }
-        
-        .stButton > button:hover {
+        .btn-container .stButton > button:hover {
             transform: scale(1.03);
             box-shadow: 0 4px 16px rgba(102, 126, 234, 0.5);
             background: linear-gradient(90deg, #7b93f5 0%, #8b5fbf 100%);
-        }
-        
-        .stButton > button:active {
-            transform: scale(0.97);
-            box-shadow: 0 1px 2px rgba(102, 126, 234, 0.2);
-        }
-        
-        .sidebar .stButton > button {
-            width: 100%;
-            min-width: unset;
-            padding: 8px 12px;
-            font-size: 13px;
-        }
-        
-        form .stButton > button {
-            min-width: 100px;
-            padding: 8px 24px;
         }
         
         .stTabs [data-baseweb="tab-list"] {
@@ -377,8 +357,10 @@ with col5:
 
 st.divider()
 
-# ==================== КНОПКИ УПРАВЛЕНИЯ (С ОТСТУПАМИ) ====================
-col_btn1, col_btn2, col_btn3, col_btn4 = st.columns([1, 1, 1, 7])
+# ==================== КНОПКИ УПРАВЛЕНИЯ (ЧЕРЕЗ HTML) ====================
+st.markdown('<div class="btn-container">', unsafe_allow_html=True)
+
+col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
 
 with col_btn1:
     if st.button("➕ Добавить", use_container_width=True):
@@ -391,6 +373,8 @@ with col_btn2:
 with col_btn3:
     if st.button("📊 Статистика", use_container_width=True):
         st.session_state.show_stats = not st.session_state.get("show_stats", False)
+
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ==================== ФОРМА ДОБАВЛЕНИЯ ====================
 if st.session_state.get("show_add_form", False):
