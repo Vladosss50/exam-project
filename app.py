@@ -12,86 +12,133 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ==================== CSS ДЛЯ КРАСИВОГО ОФОРМЛЕНИЯ ====================
+# ==================== CSS ДЛЯ СВЕТЛОЙ ТЕМЫ ====================
 st.markdown("""
     <style>
-        .stMetric { 
-            background-color: #f8f9fa; 
-            padding: 15px; 
-            border-radius: 10px; 
-            border: 1px solid #e9ecef; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+        /* ОБЩИЙ ФОН */
+        .stApp {
+            background-color: #ffffff;
         }
-        .stButton > button { 
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
-            padding: 8px 24px; 
-            transition: transform 0.2s; 
+        
+        /* МЕТРИКИ */
+        .stMetric {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        .stButton > button:hover { 
-            transform: scale(1.05); 
+        
+        /* КНОПКИ - БЕЗ ПЕРЕНОСА ТЕКСТА */
+        .stButton > button {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            transition: transform 0.2s;
+            white-space: nowrap;
+            min-width: 100px;
         }
-        .stTabs [data-baseweb="tab-list"] { 
-            background-color: #f8f9fa; 
-            border-radius: 10px; 
+        .stButton > button:hover {
+            transform: scale(1.05);
         }
-        .main-header { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            padding: 20px; 
-            border-radius: 15px; 
-            margin-bottom: 30px; 
+        
+        /* ТАБЫ */
+        .stTabs [data-baseweb="tab-list"] {
+            background-color: #f8f9fa;
+            border-radius: 10px;
         }
-        .main-header h1 { 
-            color: white !important; 
+        
+        /* ЗАГОЛОВОК */
+        .main-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        .main-header h1 {
+            color: white !important;
         }
         .main-header p {
             color: rgba(255,255,255,0.9) !important;
         }
-        .stExpander { 
-            border-radius: 10px; 
-            border: 1px solid #e9ecef; 
+        .header-time {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: white;
+            white-space: nowrap;
         }
-        .stAlert { 
-            border-radius: 10px; 
+        
+        /* РАЗВОРАЧИВАЕМЫЕ БЛОКИ */
+        .stExpander {
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
         }
+        
+        /* ПРЕДУПРЕЖДЕНИЯ */
+        .stAlert {
+            border-radius: 10px;
+        }
+        
+        /* БОКОВАЯ ПАНЕЛЬ */
         .stSidebar {
             background-color: #f8f9fa;
         }
         .stSidebar .stTitle {
             color: #333;
         }
+        
+        /* ТАБЛИЦА */
         .stDataFrame {
             border-radius: 10px;
             border: 1px solid #e9ecef;
         }
+        
+        /* ПОДВАЛ */
         .footer {
-            text-align: center; 
-            color: #888; 
+            text-align: center;
+            color: #888;
             padding: 20px 0;
         }
         .footer p {
             margin: 5px 0;
         }
-        .header-time {
-            background: rgba(255,255,255,0.2); 
-            padding: 8px 16px; 
-            border-radius: 20px; 
-            color: white;
-        }
-        .stat-card {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            border: 1px solid #e9ecef;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .stSelectbox, .stTextInput, .stDateInput {
+        
+        /* ВСЕ ПОЛЯ ВВОДА - СВЕТЛЫЕ */
+        .stSelectbox, .stTextInput, .stDateInput, .stNumberInput {
             background-color: white;
         }
-        .stNumberInput {
-            background-color: white;
+        
+        /* ТЕКСТ - ЧЕРНЫЙ */
+        .stMarkdown, .stText, .stTitle, .stSubheader, .stHeader {
+            color: #333333 !important;
+        }
+        h1, h2, h3, h4, h5, h6, label, p, span, div {
+            color: #333333 !important;
+        }
+        
+        /* КНОПКИ В БОКОВОЙ ПАНЕЛИ */
+        .sidebar .stButton > button {
+            width: 100%;
+            min-width: unset;
+        }
+        
+        /* ТАБЛИЦА - СВЕТЛАЯ */
+        .dataframe {
+            background-color: white !important;
+        }
+        
+        /* МЕТКИ В ФИЛЬТРАХ */
+        .stSidebar label {
+            color: #333333 !important;
+            font-weight: 500;
+        }
+        
+        /* ЗАГОЛОВКИ В САЙДБАРЕ */
+        .stSidebar h1, .stSidebar h2, .stSidebar h3 {
+            color: #333333 !important;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -165,7 +212,6 @@ st.markdown(f"""
 with st.sidebar:
     st.title("⚙️ Управление")
     
-    # Кнопка выхода
     if st.button("🚪 Выйти", use_container_width=True, help="Выйти из аккаунта"):
         del st.session_state.user_id
         del st.session_state.username
@@ -173,7 +219,6 @@ with st.sidebar:
     
     st.divider()
     
-    # Загрузка данных
     df = db.get_data()
     
     st.header("🔍 Фильтры")
@@ -202,7 +247,6 @@ with st.sidebar:
     
     search_term = st.text_input("🔎 Поиск по товару", placeholder="Введите название...")
     
-    # Применение фильтров
     filtered_df = df[
         (df['category'].isin(categories)) &
         (df['city'].isin(cities)) &
@@ -235,7 +279,7 @@ with col5:
 
 st.divider()
 
-# ==================== КНОПКИ УПРАВЛЕНИЯ ====================
+# ==================== КНОПКИ УПРАВЛЕНИЯ (БЕЗ ПЕРЕНОСА) ====================
 col_btn1, col_btn2, col_btn3, col_btn4 = st.columns([1, 1, 1, 7])
 
 with col_btn1:
@@ -291,7 +335,6 @@ if st.session_state.get("show_stats", False) and len(filtered_df) > 0:
     with st.expander("📊 Дополнительная статистика", expanded=True):
         col1, col2 = st.columns(2)
         with col1:
-            # Топ-товары
             top_products = filtered_df.groupby('product')['revenue'].sum().sort_values(ascending=False).head(10)
             fig_top = px.bar(
                 top_products.reset_index(),
@@ -301,7 +344,6 @@ if st.session_state.get("show_stats", False) and len(filtered_df) > 0:
             )
             st.plotly_chart(fig_top, use_container_width=True)
         with col2:
-            # Продажи по дням недели
             df_weekday = filtered_df.copy()
             df_weekday['weekday'] = pd.to_datetime(df_weekday['date']).dt.day_name()
             weekday_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -341,7 +383,6 @@ if len(filtered_df) > 0:
             )
             st.plotly_chart(fig2, use_container_width=True)
         
-        # Динамика
         daily_sales = filtered_df.groupby('date')['revenue'].sum().reset_index()
         fig3 = px.line(
             daily_sales, x='date', y='revenue',
@@ -352,7 +393,6 @@ if len(filtered_df) > 0:
         fig3.update_layout(xaxis_title="Дата", yaxis_title="Выручка (₽)")
         st.plotly_chart(fig3, use_container_width=True)
         
-        # Топ-менеджеры
         manager_sales = filtered_df.groupby('manager')['revenue'].sum().reset_index().sort_values('revenue', ascending=False)
         fig4 = px.bar(
             manager_sales, x='manager', y='revenue',
@@ -366,7 +406,6 @@ if len(filtered_df) > 0:
     with tab2:
         st.subheader("📋 Детальные данные")
         
-        # Пагинация
         items_per_page = 10
         total_pages = max(1, (len(filtered_df) - 1) // items_per_page + 1)
         page = st.number_input("📄 Страница", min_value=1, max_value=total_pages, value=1, step=1, key="page_num")
@@ -375,7 +414,6 @@ if len(filtered_df) > 0:
         end_idx = start_idx + items_per_page
         page_data = filtered_df.iloc[start_idx:end_idx]
         
-        # Красивая таблица
         st.dataframe(
             page_data[['id', 'date', 'category', 'product', 'quantity', 'price', 'city', 'manager', 'revenue']],
             use_container_width=True,
@@ -396,7 +434,6 @@ if len(filtered_df) > 0:
         
         st.caption(f"📊 Всего записей: {len(filtered_df)} | Страница {page} из {total_pages}")
         
-        # Удаление записи
         st.subheader("🗑️ Управление записями")
         col_del1, col_del2 = st.columns([1, 4])
         with col_del1:
@@ -415,7 +452,6 @@ if len(filtered_df) > 0:
         
         col_exp1, col_exp2 = st.columns(2)
         with col_exp1:
-            # CSV
             csv = filtered_df.to_csv(index=False)
             st.download_button(
                 label="📄 Скачать CSV",
@@ -425,7 +461,6 @@ if len(filtered_df) > 0:
                 use_container_width=True
             )
         with col_exp2:
-            # Excel
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
                 filtered_df.to_excel(writer, sheet_name='Sales', index=False)
