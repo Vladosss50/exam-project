@@ -4,6 +4,7 @@ import numpy as np
 import plotly.express as px
 from datetime import datetime, timedelta
 import random
+import io
 
 # ==================== НАСТРОЙКА СТРАНИЦЫ ====================
 st.set_page_config(
@@ -11,9 +12,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# ==================== ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ ====================
-# Объявляем df как глобальную переменную
 
 # ==================== ГЕНЕРАЦИЯ ДАННЫХ ====================
 @st.cache_data
@@ -49,7 +47,55 @@ def generate_data():
     return pd.DataFrame(data)
 
 # Инициализация df
-df = generate_data()
+if "df" not in st.session_state:
+    st.session_state.df = generate_data()
+
+# ==================== ЗАГРУЗКА ФАЙЛА ====================
+def load_uploaded_file(uploaded_file):
+    """Загружает файл и добавляет данные в df"""
+    try:
+        # Определяем тип файла
+        file_type = uploaded_file.name.split('.')[-1].lower()
+        
+        # Читаем файл
+        if file_type == 'csv':
+            new_df = pd.read_csv(uploaded_file)
+        elif file_type in ['xlsx', 'xls']:
+            new_df = pd.read_excel(uploaded_file)
+        else:
+            st.error("❌ Поддерживаются только CSV и Excel файлы!")
+            return False
+        
+        # Проверяем колонки (поддерживаем два варианта: русские и английские)
+        required_cols_ru = ['Дата', 'Категория', 'Товар', 'Количество', 'Цена', 'Город', 'Менеджер']
+        required_cols_en = ['date', 'category', 'product', 'quantity', 'price', 'city', 'manager']
+        
+        # Проверяем, какие колонки есть
+        if all(col in new_df.columns for col in required_cols_ru):
+            # Русские колонки
+            new_df = new_df[required_cols_ru]
+            new_df.columns = ['Дата', 'Категория', 'Товар', 'Количество', 'Цена', 'Город', 'Менеджер']
+            new_df['Выручка'] = new_df['Количество'] * new_df['Цена']
+        elif all(col in new_df.columns for col in required_cols_en):
+            # Английские колонки
+            new_df = new_df[required_cols_en]
+            new_df.columns = ['Дата', 'Категория', 'Товар', 'Количество', 'Цена', 'Город', 'Менеджер']
+            new_df['Выручка'] = new_df['Количество'] * new_df['Цена']
+        else:
+            st.error(f"❌ Неправильные колонки! Требуются: {', '.join(required_cols_ru)}")
+            st.info(f"💡 Или на английском: {', '.join(required_cols_en)}")
+            return False
+        
+        # Добавляем к существующим данным
+        st.session_state.df = pd.concat([st.session_state.df, new_df], ignore_index=True)
+        
+        st.success(f"✅ Успешно загружено {len(new_df)} записей!")
+        st.info(f"📊 Всего теперь {len(st.session_state.df)} записей")
+        return True
+        
+    except Exception as e:
+        st.error(f"❌ Ошибка при загрузке файла: {str(e)}")
+        return False
 
 # ==================== CSS ====================
 st.markdown("""
@@ -176,6 +222,29 @@ st.markdown("""
         .stSidebar h1, .stSidebar h2, .stSidebar h3 {
             color: #333333 !important;
         }
+        
+        .upload-container {
+            border: 2px dashed #667eea;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            background-color: #f8f9fa;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+        .upload-container:hover {
+            border-color: #764ba2;
+            background-color: #f0edff;
+        }
+        .upload-container p {
+            color: #667eea !important;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .upload-container .sub-text {
+            color: #888 !important;
+            font-size: 12px;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -199,6 +268,34 @@ with st.sidebar:
     st.title("⚙️ Управление")
     st.divider()
     
+    # ==================== ЗАГРУЗКА ФАЙЛА ====================
+    st.header("📤 Загрузить данные")
+    
+    st.markdown("""
+        <div class="upload-container">
+            <p>📂 Перетащите файл сюда</p>
+            <p class="sub-text">Поддерживаются CSV и Excel (.xlsx, .xls)</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    uploaded_file = st.file_uploader(
+        "Выберите файл",
+        type=['csv', 'xlsx', 'xls'],
+        label_visibility="collapsed",
+        help="Загрузите файл с данными. Колонки: Дата, Категория, Товар, Количество, Цена, Город, Менеджер"
+    )
+    
+    if uploaded_file is not None:
+        with st.spinner("⏳ Загрузка данных..."):
+            if load_uploaded_file(uploaded_file):
+                st.success("✅ Данные загружены!")
+                st.rerun()
+    
+    st.divider()
+    
+    # ==================== ФИЛЬТРЫ ====================
+    df = st.session_state.df
+    
     st.header("🔍 Фильтры")
     
     categories = st.multiselect(
@@ -213,11 +310,25 @@ with st.sidebar:
         default=df['Город'].unique()
     )
     
+    date_options = pd.to_datetime(df['Дата'])
+    min_date = date_options.min().date()
+    max_date = date_options.max().date()
+    
+    date_range = st.date_input(
+        "📅 Период",
+        value=(min_date, max_date),
+        min_value=min_date,
+        max_value=max_date
+    )
+    
     search_term = st.text_input("🔎 Поиск по товару", placeholder="Введите название...")
     
+    # Применяем фильтры
     filtered_df = df[
         (df['Категория'].isin(categories)) &
-        (df['Город'].isin(cities))
+        (df['Город'].isin(cities)) &
+        (pd.to_datetime(df['Дата']).dt.date >= date_range[0]) &
+        (pd.to_datetime(df['Дата']).dt.date <= date_range[1])
     ]
     
     if search_term:
@@ -245,7 +356,7 @@ with col5:
 
 st.divider()
 
-# ==================== КНОПКИ УПРАВЛЕНИЯ (ЧЕРЕЗ HTML) ====================
+# ==================== КНОПКИ УПРАВЛЕНИЯ ====================
 st.markdown('<div class="btn-container">', unsafe_allow_html=True)
 
 col_btn1, col_btn2, col_btn3 = st.columns([1, 1, 1])
@@ -267,7 +378,6 @@ st.markdown('</div>', unsafe_allow_html=True)
 # ==================== ФОРМА ДОБАВЛЕНИЯ ====================
 def add_sale_to_df(new_date, new_category, new_product, new_quantity, new_price, new_city, new_manager):
     """Добавляет новую запись в df"""
-    global df
     new_row = pd.DataFrame({
         'Дата': [new_date],
         'Категория': [new_category],
@@ -278,8 +388,8 @@ def add_sale_to_df(new_date, new_category, new_product, new_quantity, new_price,
         'Менеджер': [new_manager],
         'Выручка': [new_quantity * new_price]
     })
-    df = pd.concat([df, new_row], ignore_index=True)
-    return df
+    st.session_state.df = pd.concat([st.session_state.df, new_row], ignore_index=True)
+    return st.session_state.df
 
 if st.session_state.get("show_add_form", False):
     with st.expander("📝 Новая продажа", expanded=True):
@@ -388,19 +498,34 @@ if len(filtered_df) > 0:
     with tab2:
         st.subheader("📋 Детальные данные")
         st.dataframe(filtered_df, use_container_width=True)
+        st.caption(f"📊 Всего записей: {len(filtered_df)}")
     
     with tab3:
         st.subheader("📥 Экспорт данных")
-        csv = filtered_df.to_csv(index=False)
-        st.download_button(
-            label="📄 Скачать CSV",
-            data=csv,
-            file_name=f"sales_report_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
         
-        st.info("💡 **Подсказка:** CSV подходит для открытия в любых программах.")
+        col_exp1, col_exp2 = st.columns(2)
+        with col_exp1:
+            csv = filtered_df.to_csv(index=False)
+            st.download_button(
+                label="📄 Скачать CSV",
+                data=csv,
+                file_name=f"sales_report_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+                mime="text/csv",
+                use_container_width=True
+            )
+        with col_exp2:
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                filtered_df.to_excel(writer, sheet_name='Sales', index=False)
+            st.download_button(
+                label="📊 Скачать Excel",
+                data=output.getvalue(),
+                file_name=f"sales_report_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+        
+        st.info("💡 **Подсказка:** CSV подходит для открытия в любых программах, Excel — для профессиональной работы.")
         
 else:
     st.warning("⚠️ Нет данных для выбранных фильтров. Попробуйте изменить параметры фильтрации.")
