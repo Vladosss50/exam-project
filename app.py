@@ -15,12 +15,10 @@ st.set_page_config(
 # ==================== CSS ДЛЯ СВЕТЛОЙ ТЕМЫ ====================
 st.markdown("""
     <style>
-        /* ОБЩИЙ ФОН */
         .stApp {
             background-color: #ffffff;
         }
         
-        /* МЕТРИКИ */
         .stMetric {
             background-color: #f8f9fa;
             padding: 15px;
@@ -29,7 +27,7 @@ st.markdown("""
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
-        /* КНОПКИ - БЕЗ ПЕРЕНОСА ТЕКСТА */
+        /* КНОПКИ - РОВНЫЕ И ОДИНАКОВЫЕ */
         .stButton > button {
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -38,19 +36,25 @@ st.markdown("""
             padding: 8px 16px;
             transition: transform 0.2s;
             white-space: nowrap;
-            min-width: 100px;
+            width: 100%;
+            min-width: 120px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 500;
         }
         .stButton > button:hover {
             transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
         }
         
-        /* ТАБЫ */
         .stTabs [data-baseweb="tab-list"] {
             background-color: #f8f9fa;
             border-radius: 10px;
         }
         
-        /* ЗАГОЛОВОК */
         .main-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             padding: 20px;
@@ -71,18 +75,15 @@ st.markdown("""
             white-space: nowrap;
         }
         
-        /* РАЗВОРАЧИВАЕМЫЕ БЛОКИ */
         .stExpander {
             border-radius: 10px;
             border: 1px solid #e9ecef;
         }
         
-        /* ПРЕДУПРЕЖДЕНИЯ */
         .stAlert {
             border-radius: 10px;
         }
         
-        /* БОКОВАЯ ПАНЕЛЬ */
         .stSidebar {
             background-color: #f8f9fa;
         }
@@ -90,13 +91,11 @@ st.markdown("""
             color: #333;
         }
         
-        /* ТАБЛИЦА */
         .stDataFrame {
             border-radius: 10px;
             border: 1px solid #e9ecef;
         }
         
-        /* ПОДВАЛ */
         .footer {
             text-align: center;
             color: #888;
@@ -106,12 +105,10 @@ st.markdown("""
             margin: 5px 0;
         }
         
-        /* ВСЕ ПОЛЯ ВВОДА - СВЕТЛЫЕ */
         .stSelectbox, .stTextInput, .stDateInput, .stNumberInput {
             background-color: white;
         }
         
-        /* ТЕКСТ - ЧЕРНЫЙ */
         .stMarkdown, .stText, .stTitle, .stSubheader, .stHeader {
             color: #333333 !important;
         }
@@ -119,24 +116,20 @@ st.markdown("""
             color: #333333 !important;
         }
         
-        /* КНОПКИ В БОКОВОЙ ПАНЕЛИ */
         .sidebar .stButton > button {
             width: 100%;
             min-width: unset;
         }
         
-        /* ТАБЛИЦА - СВЕТЛАЯ */
         .dataframe {
             background-color: white !important;
         }
         
-        /* МЕТКИ В ФИЛЬТРАХ */
         .stSidebar label {
             color: #333333 !important;
             font-weight: 500;
         }
         
-        /* ЗАГОЛОВКИ В САЙДБАРЕ */
         .stSidebar h1, .stSidebar h2, .stSidebar h3 {
             color: #333333 !important;
         }
@@ -279,7 +272,7 @@ with col5:
 
 st.divider()
 
-# ==================== КНОПКИ УПРАВЛЕНИЯ (БЕЗ ПЕРЕНОСА) ====================
+# ==================== КНОПКИ УПРАВЛЕНИЯ ====================
 col_btn1, col_btn2, col_btn3, col_btn4 = st.columns([1, 1, 1, 7])
 
 with col_btn1:
