@@ -138,6 +138,8 @@ if "upload_complete" not in st.session_state:
     st.session_state.upload_complete = False
 if "upload_message" not in st.session_state:
     st.session_state.upload_message = ""
+if "file_processed" not in st.session_state:
+    st.session_state.file_processed = False
 
 # ==================== ЗАГРУЗКА ФАЙЛА ====================
 def load_uploaded_file_with_progress(uploaded_file):
@@ -145,6 +147,7 @@ def load_uploaded_file_with_progress(uploaded_file):
     try:
         st.session_state.uploading = True
         st.session_state.upload_complete = False
+        st.session_state.file_processed = False
         
         start_time = time.time()
         file_type = uploaded_file.name.split('.')[-1].lower()
@@ -161,7 +164,7 @@ def load_uploaded_file_with_progress(uploaded_file):
             </div>
         """, unsafe_allow_html=True)
         progress_bar.progress(20)
-        time.sleep(0.3)
+        time.sleep(0.2)
         
         # Чтение файла
         if file_type == 'csv':
@@ -182,7 +185,7 @@ def load_uploaded_file_with_progress(uploaded_file):
             </div>
         """, unsafe_allow_html=True)
         progress_bar.progress(40)
-        time.sleep(0.3)
+        time.sleep(0.2)
         
         required_columns = ['date', 'category', 'product', 'quantity', 'price', 'city', 'manager']
         missing_cols = [col for col in required_columns if col not in df.columns]
@@ -202,7 +205,7 @@ def load_uploaded_file_with_progress(uploaded_file):
             </div>
         """, unsafe_allow_html=True)
         progress_bar.progress(60)
-        time.sleep(0.3)
+        time.sleep(0.2)
         
         df['revenue'] = df['quantity'] * df['price']
         
@@ -250,13 +253,19 @@ def load_uploaded_file_with_progress(uploaded_file):
         
         st.session_state.upload_complete = True
         st.session_state.uploading = False
-        st.session_state.upload_message = f"✅ Успешно загружено {len(df)} записей!"
+        st.session_state.file_processed = True
+        st.session_state.upload_message = f"✅ Успешно загружено {len(df):,} записей!"
+        
+        # Принудительно очищаем file_uploader через 2 секунды
+        time.sleep(2)
+        st.session_state.file_processed = False
         
         return df
         
     except Exception as e:
         st.error(f"❌ Ошибка при загрузке файла: {str(e)}")
         st.session_state.uploading = False
+        st.session_state.file_processed = False
         return None
 
 # ==================== АВТОРИЗАЦИЯ ====================
@@ -324,9 +333,9 @@ with st.sidebar:
     st.title("⚙️ Управление")
     
     if st.button("🚪 Выйти", use_container_width=True, help="Выйти из аккаунта"):
-        # Сбрасываем состояние загрузки
         st.session_state.uploading = False
         st.session_state.upload_complete = False
+        st.session_state.file_processed = False
         del st.session_state.user_id
         del st.session_state.username
         st.rerun()
@@ -343,26 +352,31 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
     
+    # Ключ для file_uploader — меняем после загрузки, чтобы сбросить состояние
+    uploader_key = "file_uploader_" + str(st.session_state.get("upload_complete", False))
+    
     uploaded_file = st.file_uploader(
         "Выберите файл",
         type=['csv', 'xlsx', 'xls'],
         label_visibility="collapsed",
         help="Загрузите файл с данными. Требуемые колонки: date, category, product, quantity, price, city, manager",
-        key="file_uploader"
+        key=uploader_key
     )
     
-    # Проверяем, нужно ли загружать файл
-    if uploaded_file is not None and not st.session_state.upload_complete:
+    # Обработка файла ТОЛЬКО если он загружен и НЕ обработан ранее
+    if uploaded_file is not None and not st.session_state.get("file_processed", False):
         load_uploaded_file_with_progress(uploaded_file)
         st.rerun()
     
     # Показываем сообщение об успешной загрузке
     if st.session_state.upload_complete and st.session_state.upload_message:
         st.success(st.session_state.upload_message)
-        # Сбрасываем флаг после отображения
-        if st.button("🔄 Сбросить состояние загрузки"):
+        
+        # Кнопка для сброса и загрузки нового файла
+        if st.button("🔄 Загрузить новый файл"):
             st.session_state.upload_complete = False
             st.session_state.upload_message = ""
+            st.session_state.file_processed = False
             st.rerun()
     
     st.divider()
