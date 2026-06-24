@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 from datetime import datetime
 import database as db
 import io
@@ -13,44 +12,89 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# ==================== ТЕМА ОФОРМЛЕНИЯ ====================
-if "theme" not in st.session_state:
-    st.session_state.theme = "light"
-
-def toggle_theme():
-    st.session_state.theme = "dark" if st.session_state.theme == "light" else "light"
-
 # ==================== CSS ДЛЯ КРАСИВОГО ОФОРМЛЕНИЯ ====================
-def apply_css():
-    if st.session_state.theme == "dark":
-        st.markdown("""
-            <style>
-                .stApp { background-color: #0e1117; color: #fafafa; }
-                .stMetric { background-color: #1e1e2e; padding: 15px; border-radius: 10px; border: 1px solid #333; }
-                .stDataFrame { background-color: #1e1e2e; }
-                .stButton > button { background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; padding: 8px 24px; }
-                .stSelectbox, .stTextInput, .stDateInput { background-color: #1e1e2e; }
-                .stTabs [data-baseweb="tab-list"] { background-color: #1e1e2e; border-radius: 10px; }
-                .stTabs [data-baseweb="tab"] { color: #fafafa; }
-                .sidebar .sidebar-content { background-color: #1a1a2e; }
-                .main-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 15px; margin-bottom: 30px; }
-                h1, h2, h3 { color: #fafafa !important; }
-                .stExpander { background-color: #1e1e2e; border-radius: 10px; border: 1px solid #333; }
-            </style>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-            <style>
-                .stMetric { background-color: #f8f9fa; padding: 15px; border-radius: 10px; border: 1px solid #e9ecef; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-                .stButton > button { background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; padding: 8px 24px; transition: transform 0.2s; }
-                .stButton > button:hover { transform: scale(1.05); }
-                .stTabs [data-baseweb="tab-list"] { background-color: #f8f9fa; border-radius: 10px; }
-                .main-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 15px; margin-bottom: 30px; }
-                .main-header h1 { color: white !important; }
-                .stExpander { border-radius: 10px; border: 1px solid #e9ecef; }
-                .stAlert { border-radius: 10px; }
-            </style>
-        """, unsafe_allow_html=True)
+st.markdown("""
+    <style>
+        .stMetric { 
+            background-color: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 10px; 
+            border: 1px solid #e9ecef; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+        }
+        .stButton > button { 
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            padding: 8px 24px; 
+            transition: transform 0.2s; 
+        }
+        .stButton > button:hover { 
+            transform: scale(1.05); 
+        }
+        .stTabs [data-baseweb="tab-list"] { 
+            background-color: #f8f9fa; 
+            border-radius: 10px; 
+        }
+        .main-header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            padding: 20px; 
+            border-radius: 15px; 
+            margin-bottom: 30px; 
+        }
+        .main-header h1 { 
+            color: white !important; 
+        }
+        .main-header p {
+            color: rgba(255,255,255,0.9) !important;
+        }
+        .stExpander { 
+            border-radius: 10px; 
+            border: 1px solid #e9ecef; 
+        }
+        .stAlert { 
+            border-radius: 10px; 
+        }
+        .stSidebar {
+            background-color: #f8f9fa;
+        }
+        .stSidebar .stTitle {
+            color: #333;
+        }
+        .stDataFrame {
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+        .footer {
+            text-align: center; 
+            color: #888; 
+            padding: 20px 0;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+        .header-time {
+            background: rgba(255,255,255,0.2); 
+            padding: 8px 16px; 
+            border-radius: 20px; 
+            color: white;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .stSelectbox, .stTextInput, .stDateInput {
+            background-color: white;
+        }
+        .stNumberInput {
+            background-color: white;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 # ==================== ИНИЦИАЛИЗАЦИЯ БД ====================
 db.init_db()
@@ -59,15 +103,7 @@ db.init_db()
 def auth_page():
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.image("https://img.icons8.com/fluency/96/null/data-configuration.png", width=80)
         st.title("🔐 Вход в систему")
-        
-        # Переключатель темы на странице входа
-        theme_col1, theme_col2 = st.columns([3, 1])
-        with theme_col2:
-            if st.button("🌓" if st.session_state.theme == "light" else "☀️"):
-                toggle_theme()
-                st.rerun()
         
         tab1, tab2 = st.tabs(["🔑 Вход", "📝 Регистрация"])
         
@@ -105,23 +141,21 @@ def auth_page():
 
 # Проверка авторизации
 if "user_id" not in st.session_state:
-    apply_css()
     auth_page()
     st.stop()
 
 # ==================== ОСНОВНОЕ ПРИЛОЖЕНИЕ ====================
-apply_css()
 
-# Заголовок с аватаркой
+# Заголовок
 st.markdown(f"""
     <div class="main-header">
         <div style="display: flex; align-items: center; justify-content: space-between;">
             <div>
                 <h1>📊 Анализ продаж интернет-магазина</h1>
-                <p style="color: rgba(255,255,255,0.9); margin: 0;">Добро пожаловать, {st.session_state.username}! 👋</p>
+                <p>Добро пожаловать, {st.session_state.username}! 👋</p>
             </div>
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <span style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 20px; color: white;">⚡ {datetime.now().strftime('%d.%m.%Y %H:%M')}</span>
+            <div>
+                <span class="header-time">⚡ {datetime.now().strftime('%d.%m.%Y %H:%M')}</span>
             </div>
         </div>
     </div>
@@ -131,16 +165,11 @@ st.markdown(f"""
 with st.sidebar:
     st.title("⚙️ Управление")
     
-    col_theme, col_logout = st.columns(2)
-    with col_theme:
-        if st.button("🌓" if st.session_state.theme == "light" else "☀️", help="Переключить тему"):
-            toggle_theme()
-            st.rerun()
-    with col_logout:
-        if st.button("🚪 Выйти", help="Выйти из аккаунта"):
-            del st.session_state.user_id
-            del st.session_state.username
-            st.rerun()
+    # Кнопка выхода
+    if st.button("🚪 Выйти", use_container_width=True, help="Выйти из аккаунта"):
+        del st.session_state.user_id
+        del st.session_state.username
+        st.rerun()
     
     st.divider()
     
@@ -188,7 +217,7 @@ with st.sidebar:
 col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
-    st.metric("📦 Продажи", f"{len(filtered_df)} шт.", delta=None)
+    st.metric("📦 Продажи", f"{len(filtered_df)} шт.")
 with col2:
     st.metric("💰 Выручка", f"{filtered_df['revenue'].sum():,.0f} ₽")
 with col3:
@@ -207,7 +236,7 @@ with col5:
 st.divider()
 
 # ==================== КНОПКИ УПРАВЛЕНИЯ ====================
-col_btn1, col_btn2, col_btn3, col_btn4, col_btn5 = st.columns([1, 1, 1, 1, 6])
+col_btn1, col_btn2, col_btn3, col_btn4 = st.columns([1, 1, 1, 7])
 
 with col_btn1:
     if st.button("➕ Добавить", use_container_width=True):
@@ -415,12 +444,9 @@ else:
 
 # ==================== ПОДВАЛ ====================
 st.divider()
-st.markdown(
-    f"""
-    <div style="text-align: center; color: #888; padding: 20px 0;">
+st.markdown(f"""
+    <div class="footer">
         <p>📊 Анализ продаж интернет-магазина | Сделано с ❤️ | {datetime.now().year}</p>
         <p style="font-size: 12px;">Пользователь: {st.session_state.username} | Всего записей: {len(df)}</p>
     </div>
-    """,
-    unsafe_allow_html=True
-)
+""", unsafe_allow_html=True)
