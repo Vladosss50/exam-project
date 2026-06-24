@@ -38,39 +38,8 @@ def init_db():
         )
     ''')
     
-    # Добавляем демо-данные, если таблица пустая
-    cursor.execute("SELECT COUNT(*) FROM sales")
-    if cursor.fetchone()[0] < 10:
-        insert_demo_data(cursor)
-    
     conn.commit()
     conn.close()
-
-def insert_demo_data(cursor):
-    """Заполняет таблицу демо-данными"""
-    categories = ['Электроника', 'Одежда', 'Книги', 'Дом', 'Спорт']
-    products = {
-        'Электроника': ['Ноутбук', 'Телефон', 'Наушники', 'Планшет', 'Монитор'],
-        'Одежда': ['Футболка', 'Джинсы', 'Куртка', 'Кроссовки', 'Платье'],
-        'Книги': ['Роман', 'Учебник', 'Компьютерная литература', 'Детектив', 'Фантастика'],
-        'Дом': ['Посуда', 'Мебель', 'Декор', 'Текстиль', 'Освещение'],
-        'Спорт': ['Мяч', 'Гантели', 'Коврик', 'Велосипед', 'Скакалка']
-    }
-    cities = ['Москва', 'СПб', 'Казань', 'Новосибирск', 'Екатеринбург']
-    managers = ['Анна', 'Иван', 'Ольга', 'Петр', 'Мария']
-    
-    for i in range(50):
-        date = datetime(2024, 1, 1) + timedelta(days=i)
-        cat = random.choice(categories)
-        prod = random.choice(products[cat])
-        qty = random.randint(1, 20)
-        price = round(random.uniform(500, 15000), 0)
-        revenue = qty * price
-        
-        cursor.execute('''
-            INSERT INTO sales (date, category, product, quantity, price, city, manager, revenue)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (date.strftime('%Y-%m-%d'), cat, prod, qty, price, random.choice(cities), random.choice(managers), revenue))
 
 def get_data():
     """Возвращает все данные из БД в виде DataFrame"""
@@ -88,18 +57,6 @@ def add_sale(date, category, product, quantity, price, city, manager, user_id):
         INSERT INTO sales (date, category, product, quantity, price, city, manager, revenue, user_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (date, category, product, quantity, price, city, manager, revenue, user_id))
-    conn.commit()
-    conn.close()
-
-def update_sale(id, date, category, product, quantity, price, city, manager):
-    """Обновляет продажу"""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    revenue = quantity * price
-    cursor.execute('''
-        UPDATE sales SET date=?, category=?, product=?, quantity=?, price=?, city=?, manager=?, revenue=?
-        WHERE id=?
-    ''', (date, category, product, quantity, price, city, manager, revenue, id))
     conn.commit()
     conn.close()
 
