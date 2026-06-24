@@ -12,6 +12,45 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ==================== ГЛОБАЛЬНАЯ ПЕРЕМЕННАЯ ====================
+# Объявляем df как глобальную переменную
+
+# ==================== ГЕНЕРАЦИЯ ДАННЫХ ====================
+@st.cache_data
+def generate_data():
+    categories = ['Электроника', 'Одежда', 'Книги', 'Дом', 'Спорт']
+    products = {
+        'Электроника': ['Ноутбук', 'Телефон', 'Наушники', 'Планшет'],
+        'Одежда': ['Футболка', 'Джинсы', 'Куртка', 'Кроссовки'],
+        'Книги': ['Роман', 'Учебник', 'Детектив', 'Фантастика'],
+        'Дом': ['Посуда', 'Мебель', 'Декор', 'Текстиль'],
+        'Спорт': ['Мяч', 'Гантели', 'Коврик', 'Велосипед']
+    }
+    cities = ['Москва', 'СПб', 'Казань', 'Новосибирск', 'Екатеринбург']
+    managers = ['Анна', 'Иван', 'Ольга', 'Петр', 'Мария']
+    
+    data = []
+    for i in range(50):
+        date = datetime(2024, 1, 1) + timedelta(days=i)
+        cat = random.choice(categories)
+        prod = random.choice(products[cat])
+        qty = random.randint(1, 20)
+        price = round(random.uniform(500, 15000), 0)
+        data.append({
+            'Дата': date.strftime('%Y-%m-%d'),
+            'Категория': cat,
+            'Товар': prod,
+            'Количество': qty,
+            'Цена': price,
+            'Город': random.choice(cities),
+            'Менеджер': random.choice(managers),
+            'Выручка': qty * price
+        })
+    return pd.DataFrame(data)
+
+# Инициализация df
+df = generate_data()
+
 # ==================== CSS ====================
 st.markdown("""
     <style>
@@ -27,7 +66,6 @@ st.markdown("""
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         
-        /* ========== КНОПКИ В ОДНУ СТРОКУ С ОТСТУПАМИ ========== */
         .btn-container {
             display: flex;
             gap: 15px;
@@ -141,41 +179,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ==================== ГЕНЕРАЦИЯ ДАННЫХ ====================
-@st.cache_data
-def generate_data():
-    categories = ['Электроника', 'Одежда', 'Книги', 'Дом', 'Спорт']
-    products = {
-        'Электроника': ['Ноутбук', 'Телефон', 'Наушники', 'Планшет'],
-        'Одежда': ['Футболка', 'Джинсы', 'Куртка', 'Кроссовки'],
-        'Книги': ['Роман', 'Учебник', 'Детектив', 'Фантастика'],
-        'Дом': ['Посуда', 'Мебель', 'Декор', 'Текстиль'],
-        'Спорт': ['Мяч', 'Гантели', 'Коврик', 'Велосипед']
-    }
-    cities = ['Москва', 'СПб', 'Казань', 'Новосибирск', 'Екатеринбург']
-    managers = ['Анна', 'Иван', 'Ольга', 'Петр', 'Мария']
-    
-    data = []
-    for i in range(50):
-        date = datetime(2024, 1, 1) + timedelta(days=i)
-        cat = random.choice(categories)
-        prod = random.choice(products[cat])
-        qty = random.randint(1, 20)
-        price = round(random.uniform(500, 15000), 0)
-        data.append({
-            'Дата': date.strftime('%Y-%m-%d'),
-            'Категория': cat,
-            'Товар': prod,
-            'Количество': qty,
-            'Цена': price,
-            'Город': random.choice(cities),
-            'Менеджер': random.choice(managers),
-            'Выручка': qty * price
-        })
-    return pd.DataFrame(data)
-
-df = generate_data()
-
 # ==================== ЗАГОЛОВОК ====================
 st.markdown(f"""
     <div class="main-header">
@@ -262,12 +265,28 @@ with col_btn3:
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ==================== ФОРМА ДОБАВЛЕНИЯ ====================
+def add_sale_to_df(new_date, new_category, new_product, new_quantity, new_price, new_city, new_manager):
+    """Добавляет новую запись в df"""
+    global df
+    new_row = pd.DataFrame({
+        'Дата': [new_date],
+        'Категория': [new_category],
+        'Товар': [new_product],
+        'Количество': [new_quantity],
+        'Цена': [new_price],
+        'Город': [new_city],
+        'Менеджер': [new_manager],
+        'Выручка': [new_quantity * new_price]
+    })
+    df = pd.concat([df, new_row], ignore_index=True)
+    return df
+
 if st.session_state.get("show_add_form", False):
     with st.expander("📝 Новая продажа", expanded=True):
         with st.form("add_sale_form"):
             col1, col2 = st.columns(2)
             with col1:
-                new_date = st.date_input("📅 Дата", datetime.now())
+                new_date = st.date_input("📅 Дата", datetime.now()).strftime('%Y-%m-%d')
                 new_category = st.selectbox("📂 Категория", df['Категория'].unique())
                 new_product = st.text_input("📦 Товар", placeholder="Введите название товара")
                 new_quantity = st.number_input("🔢 Количество", min_value=1, step=1, value=1)
@@ -288,19 +307,7 @@ if st.session_state.get("show_add_form", False):
                 if not new_product:
                     st.error("❌ Введите название товара!")
                 else:
-                    # Добавляем в DataFrame
-                    new_row = pd.DataFrame({
-                        'Дата': [new_date.strftime('%Y-%m-%d')],
-                        'Категория': [new_category],
-                        'Товар': [new_product],
-                        'Количество': [new_quantity],
-                        'Цена': [new_price],
-                        'Город': [new_city],
-                        'Менеджер': [new_manager],
-                        'Выручка': [new_quantity * new_price]
-                    })
-                    global df
-                    df = pd.concat([df, new_row], ignore_index=True)
+                    add_sale_to_df(new_date, new_category, new_product, new_quantity, new_price, new_city, new_manager)
                     st.success("✅ Запись успешно добавлена!")
                     st.session_state.show_add_form = False
                     st.rerun()
