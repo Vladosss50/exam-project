@@ -5,6 +5,7 @@ import plotly.express as px
 from datetime import datetime, timedelta
 import random
 import io
+import time
 
 # ==================== НАСТРОЙКА СТРАНИЦЫ ====================
 st.set_page_config(
@@ -49,13 +50,42 @@ def generate_data():
 # Инициализация df
 if "df" not in st.session_state:
     st.session_state.df = generate_data()
+if "uploading" not in st.session_state:
+    st.session_state.uploading = False
+if "upload_complete" not in st.session_state:
+    st.session_state.upload_complete = False
 
-# ==================== ЗАГРУЗКА ФАЙЛА ====================
-def load_uploaded_file(uploaded_file):
-    """Загружает файл и добавляет данные в df"""
+# ==================== ЗАГРУЗКА ФАЙЛА С АНИМАЦИЕЙ ====================
+def load_uploaded_file_with_progress(uploaded_file):
+    """Загружает файл с отображением прогресса и анимацией"""
     try:
-        # Определяем тип файла
+        st.session_state.uploading = True
+        st.session_state.upload_complete = False
+        
+        start_time = time.time()
         file_type = uploaded_file.name.split('.')[-1].lower()
+        
+        # Создаем контейнеры для анимации
+        progress_bar = st.progress(0)
+        status_placeholder = st.empty()
+        time_placeholder = st.empty()
+        
+        # Шаг 1: Чтение файла (20%)
+        status_placeholder.markdown("""
+            <div style="text-align: center; padding: 15px;">
+                <div style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                <p style="color: #667eea; font-size: 16px; font-weight: 500; margin-top: 10px;">⏳ Чтение файла...</p>
+                <p style="color: #888; font-size: 13px;">Пожалуйста, подождите</p>
+            </div>
+            <style>
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            </style>
+        """, unsafe_allow_html=True)
+        progress_bar.progress(20)
+        time.sleep(0.5)
         
         # Читаем файл
         if file_type == 'csv':
@@ -64,37 +94,85 @@ def load_uploaded_file(uploaded_file):
             new_df = pd.read_excel(uploaded_file)
         else:
             st.error("❌ Поддерживаются только CSV и Excel файлы!")
+            st.session_state.uploading = False
             return False
         
-        # Проверяем колонки (поддерживаем два варианта: русские и английские)
+        # Шаг 2: Проверка данных (40%)
+        status_placeholder.markdown("""
+            <div style="text-align: center; padding: 15px;">
+                <div style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                <p style="color: #667eea; font-size: 16px; font-weight: 500; margin-top: 10px;">🔍 Проверка данных...</p>
+                <p style="color: #888; font-size: 13px;">Проверяем структуру файла</p>
+            </div>
+        """, unsafe_allow_html=True)
+        progress_bar.progress(40)
+        time.sleep(0.5)
+        
+        # Проверяем колонки
         required_cols_ru = ['Дата', 'Категория', 'Товар', 'Количество', 'Цена', 'Город', 'Менеджер']
         required_cols_en = ['date', 'category', 'product', 'quantity', 'price', 'city', 'manager']
         
-        # Проверяем, какие колонки есть
         if all(col in new_df.columns for col in required_cols_ru):
-            # Русские колонки
             new_df = new_df[required_cols_ru]
             new_df.columns = ['Дата', 'Категория', 'Товар', 'Количество', 'Цена', 'Город', 'Менеджер']
             new_df['Выручка'] = new_df['Количество'] * new_df['Цена']
         elif all(col in new_df.columns for col in required_cols_en):
-            # Английские колонки
             new_df = new_df[required_cols_en]
             new_df.columns = ['Дата', 'Категория', 'Товар', 'Количество', 'Цена', 'Город', 'Менеджер']
             new_df['Выручка'] = new_df['Количество'] * new_df['Цена']
         else:
             st.error(f"❌ Неправильные колонки! Требуются: {', '.join(required_cols_ru)}")
             st.info(f"💡 Или на английском: {', '.join(required_cols_en)}")
+            st.session_state.uploading = False
             return False
+        
+        # Шаг 3: Обработка данных (60%)
+        status_placeholder.markdown("""
+            <div style="text-align: center; padding: 15px;">
+                <div style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                <p style="color: #667eea; font-size: 16px; font-weight: 500; margin-top: 10px;">📊 Обработка данных...</p>
+                <p style="color: #888; font-size: 13px;">Форматируем данные</p>
+            </div>
+        """, unsafe_allow_html=True)
+        progress_bar.progress(60)
+        time.sleep(0.5)
+        
+        # Шаг 4: Добавление к существующим данным (80%)
+        status_placeholder.markdown(f"""
+            <div style="text-align: center; padding: 15px;">
+                <div style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto;"></div>
+                <p style="color: #667eea; font-size: 16px; font-weight: 500; margin-top: 10px;">💾 Сохранение данных...</p>
+                <p style="color: #888; font-size: 13px;">Добавляем {len(new_df)} записей</p>
+            </div>
+        """, unsafe_allow_html=True)
+        progress_bar.progress(80)
+        time.sleep(0.5)
         
         # Добавляем к существующим данным
         st.session_state.df = pd.concat([st.session_state.df, new_df], ignore_index=True)
         
-        st.success(f"✅ Успешно загружено {len(new_df)} записей!")
-        st.info(f"📊 Всего теперь {len(st.session_state.df)} записей")
+        # Шаг 5: Готово (100%)
+        progress_bar.progress(100)
+        elapsed_time = time.time() - start_time
+        status_placeholder.markdown(f"""
+            <div style="text-align: center; padding: 15px;">
+                <p style="color: #28a745 !important; font-size: 40px;">✅</p>
+                <p style="color: #28a745 !important; font-size: 18px; font-weight: 500;">Загрузка завершена!</p>
+                <p style="color: #888; font-size: 13px;">Добавлено {len(new_df)} записей за {elapsed_time:.1f} секунд</p>
+                <p style="color: #888; font-size: 12px;">Всего теперь {len(st.session_state.df)} записей</p>
+            </div>
+        """, unsafe_allow_html=True)
+        
+        time.sleep(0.8)
+        
+        st.session_state.uploading = False
+        st.session_state.upload_complete = True
+        
         return True
         
     except Exception as e:
         st.error(f"❌ Ошибка при загрузке файла: {str(e)}")
+        st.session_state.uploading = False
         return False
 
 # ==================== CSS ====================
@@ -275,8 +353,13 @@ with st.sidebar:
         <div class="upload-container">
             <p>📂 Перетащите файл сюда</p>
             <p class="sub-text">Поддерживаются CSV и Excel (.xlsx, .xls)</p>
+            <p class="sub-text" style="color: #667eea !important;">Рекомендуем до 1000 записей</p>
         </div>
     """, unsafe_allow_html=True)
+    
+    # Показываем статус загрузки
+    if st.session_state.uploading:
+        st.info("⏳ Идет загрузка... Пожалуйста, подождите")
     
     uploaded_file = st.file_uploader(
         "Выберите файл",
@@ -285,11 +368,15 @@ with st.sidebar:
         help="Загрузите файл с данными. Колонки: Дата, Категория, Товар, Количество, Цена, Город, Менеджер"
     )
     
-    if uploaded_file is not None:
-        with st.spinner("⏳ Загрузка данных..."):
-            if load_uploaded_file(uploaded_file):
-                st.success("✅ Данные загружены!")
-                st.rerun()
+    if uploaded_file is not None and not st.session_state.uploading:
+        load_uploaded_file_with_progress(uploaded_file)
+        st.rerun()
+    
+    if st.session_state.upload_complete:
+        st.success("✅ Данные загружены!")
+        if st.button("🔄 Загрузить ещё файл"):
+            st.session_state.upload_complete = False
+            st.rerun()
     
     st.divider()
     
@@ -314,12 +401,18 @@ with st.sidebar:
     min_date = date_options.min().date()
     max_date = date_options.max().date()
     
-    date_range = st.date_input(
-        "📅 Период",
-        value=(min_date, max_date),
-        min_value=min_date,
-        max_value=max_date
-    )
+    if min_date != max_date:
+        date_range = st.date_input(
+            "📅 Период",
+            value=(min_date, max_date),
+            min_value=min_date,
+            max_value=max_date
+        )
+        date_start = date_range[0] if isinstance(date_range, tuple) else min_date
+        date_end = date_range[1] if isinstance(date_range, tuple) else max_date
+    else:
+        date_start = min_date
+        date_end = max_date
     
     search_term = st.text_input("🔎 Поиск по товару", placeholder="Введите название...")
     
@@ -327,8 +420,8 @@ with st.sidebar:
     filtered_df = df[
         (df['Категория'].isin(categories)) &
         (df['Город'].isin(cities)) &
-        (pd.to_datetime(df['Дата']).dt.date >= date_range[0]) &
-        (pd.to_datetime(df['Дата']).dt.date <= date_range[1])
+        (pd.to_datetime(df['Дата']).dt.date >= date_start) &
+        (pd.to_datetime(df['Дата']).dt.date <= date_end)
     ]
     
     if search_term:
